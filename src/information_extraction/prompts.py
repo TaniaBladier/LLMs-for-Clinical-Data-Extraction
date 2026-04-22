@@ -184,15 +184,17 @@ Medical text:
 
 def build_chat_prompt(text: str, task: str = "extraction") -> List[Dict[str, str]]:
     """
-    The master function to build chat-templated prompts.
-    
-    Args:
-        text: The raw medical text.
-        task: The key from the TEMPLATES dictionary.
+    Builds a prompt. 'task' can be a key in TEMPLATES or a custom template string.
     """
-    user_instruction = TEMPLATES.get(task, TEMPLATES["extraction"])
+    # 1. Try to get a template from the dictionary
+    # 2. If it's not in the dictionary, use the 'task' string itself as the template
+    user_template = TEMPLATES.get(task, task)
     
+    # 3. If 'task' was none or empty, fall back to default extraction
+    if not user_template:
+        user_template = TEMPLATES["extraction"]
+
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_instruction.format(text=text)}
+        {"role": "user", "content": user_template.format(text=text)}
     ]

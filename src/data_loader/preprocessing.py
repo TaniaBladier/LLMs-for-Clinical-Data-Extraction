@@ -34,24 +34,26 @@ class ClinicalPreprocessor:
         )
 
         return "\n".join(l for l in lines[start_idx:end_idx] if l.strip())
+        
 
     def process_folder(self, folder_path: str, extractor_instance, limit: int = 5, prompt_func=None) -> pd.DataFrame:
         """Loops through files using the specific markers for this instance."""
         records = []
         files = sorted(Path(folder_path).glob("*.txt"))[:limit]
-
+    
         for file in files:
             raw = file.read_text(encoding="utf-8")
             text = self.clean_text(raw)
-
+    
             if not text:
                 continue
-
-            # Calls the extraction model
+    
+            # Pass the prompt_func down to the extractor
+            # It will use the lambda you passed from the notebook
             result = extractor_instance.extract_medical_info(text, prompt_func=prompt_func)
+            
             result["source_file"] = file.name
             result["lang"] = self.language
-            
             records.append(result)
 
         return pd.DataFrame(records)
