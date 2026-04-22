@@ -1,48 +1,57 @@
 import pandas as pd
 from pathlib import Path
-from src.information_extraction.extractor import extract_medical_info
+from src.information_extraction.extractor import MedicalExtractor
 
-def extract_clinical_text(raw_text: str) -> str:
-    markers = [
-        "CHIEF COMPLAINT:",
-        "HISTORY OF PRESENT ILLNESS:",
-        "REASON FOR VISIT:",
-    ]
+class ClinicalPreprocessor:
+    def __init__(self, language="en", markers=None, end_marker=None):
+        self.language = language
+        
+        # Default to English if no markers provided
+        self.markers = markers or [
+            "CHIEF COMPLAINT:", 
+            "HISTORY OF PRESENT ILLNESS:", 
+            "REASON FOR VISIT:"
+        ]
+        self.end_marker = end_marker or "About This Sample:"
 
-    lines = raw_text.splitlines()
+    def clean_text(self, raw_text: str) -> str:
+        """Extracts the relevant clinical section from raw notes."""
+        lines = raw_text.splitlines()
 
-    start_idx = next(
-        (i for i, line in enumerate(lines)
-         if any(line.strip().startswith(m) for m in markers)),
-        None
-    )
+        start_idx = next(
+            (i for i, line in enumerate(lines)
+             if any(line.strip().startswith(m) for m in self.markers)),
+            None
+        )
 
-    if start_idx is None:
-        return ""
+        if start_idx is None:
+            return ""
 
-    end_idx = next(
-        (i for i, line in enumerate(lines)
-         if "About This Sample:" in line),
-        len(lines)
-    )
+        end_idx = next(
+            (i for i, line in enumerate(lines)
+             if self.end_marker in line),
+            len(lines)
+        )
 
-    return "\n".join(l for l in lines[start_idx:end_idx] if l.strip())
+        return "\n".join(l for l in lines[start_idx:end_idx] if l.strip())
 
+    def process_folder(self, folder_path: str, extractor_instance, limit: int = 5) -> pd.DataFrame:
+        """Loops through files using the specific markers for this instance."""
+        records = []
+        files = sorted(Path(folder_path).glob("*.txt"))[:limit]
 
-def process_er_folder(folder_path: str, limit: int = 5) -> pd.DataFrame:
-    records = []
-    files = sorted(Path(folder_path).glob("*.txt"))[:limit]
+        for file in files:
+            raw = file.read_text(encoding="utf-8")
+            text = self.clean_text(raw)
 
-    for file in files:
-        raw = file.read_text(encoding="utf-8")
-        text = extract_clinical_text(raw)
+            if not text:
+                continue
 
-        if not text:
-            continue
+            # Calls the extraction model
+            result = extractor_instance.extract_medical_info(text)
+            result["source_file"] = file.name
+            result["lang"] = self.language
+            
+            records.append(result)
 
-        result = extract_medical_info(text)
-        result["source_file"] = file.name
-
-        records.append(result)
-
-    return pd.DataFrame(records)
+        return pd.DataFrame(records)
