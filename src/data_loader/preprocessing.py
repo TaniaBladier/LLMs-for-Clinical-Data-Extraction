@@ -35,7 +35,7 @@ class ClinicalPreprocessor:
 
         return "\n".join(l for l in lines[start_idx:end_idx] if l.strip())
 
-    def process_folder(self, folder_path: str, extractor_instance, limit: int = 5) -> pd.DataFrame:
+    def process_folder(self, folder_path: str, extractor_instance, limit: int = 5, prompt_func=None) -> pd.DataFrame:
         """Loops through files using the specific markers for this instance."""
         records = []
         files = sorted(Path(folder_path).glob("*.txt"))[:limit]
@@ -48,7 +48,7 @@ class ClinicalPreprocessor:
                 continue
 
             # Calls the extraction model
-            result = extractor_instance.extract_medical_info(text)
+            result = extractor_instance.extract_medical_info(text, prompt_func=prompt_func)
             result["source_file"] = file.name
             result["lang"] = self.language
             

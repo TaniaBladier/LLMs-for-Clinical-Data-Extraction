@@ -19,14 +19,20 @@ class MedicalExtractor:
         return self.pipe(f"Extract medical info from: {text}")
         
 
-    def extract_medical_info(self, text: str) -> dict:
-        prompt = build_prompt_cause(text)
+    def extract_medical_info(self, text: str, prompt_func=None) -> dict:
+        fn = prompt_func if prompt_func else build_prompt_cause
+        messages = fn(text)
+        
+        # Use the tokenizer to turn the list of messages into the model's specific format
+        prompt = self.pipe.tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+        
         output = self.pipe(prompt)[0]["generated_text"]
         
-        # Strip the prompt from the output — pipeline returns prompt + completion
-        if isinstance(output, str):
-            completion = output[len(prompt):]
-        else:
-            completion = output  # some pipeline versions return only the new tokens
+        # Strip the prompt from the output
+        completion = output[len(prompt):]
         
         return parse_json(completion)
