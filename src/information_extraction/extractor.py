@@ -1,5 +1,5 @@
 from transformers import pipeline
-from .prompts import build_prompt_cause
+from .prompts import build_chat_prompt
 from .parsing import parse_json
 
 class MedicalExtractor:
