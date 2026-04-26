@@ -10,6 +10,7 @@ class MedicalExtractor:
             model=model_name,
             device_map="auto",
             max_new_tokens=1024,
+            trust_remote_code=True,  # Add this line
             **pipeline_kwargs
         )
         

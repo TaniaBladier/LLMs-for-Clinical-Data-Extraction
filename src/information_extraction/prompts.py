@@ -201,3 +201,17 @@ def build_chat_prompt(text: str, task: str = "extraction", system_prompt: str = 
         {"role": "system", "content": system_prompt or SYSTEM_PROMPT},
         {"role": "user", "content": user_template.format(text=text)}
     ]
+
+
+def build_chat_prompt_biomistral(text: str, task: str = "extraction", system_prompt: str = None) -> List[Dict[str, str]]:
+    user_template = TEMPLATES.get(task, task) or TEMPLATES["extraction"]
+    
+    # Use replace instead of format to avoid issues with {} in medical text
+    user_content = user_template.replace("{text}", text)
+    
+    active_system = system_prompt or SYSTEM_PROMPT
+    
+    # Mistral-friendly format: System instructions + User task in one block
+    return [
+        {"role": "user", "content": f"{active_system}\n\n{user_content}"}
+    ]
